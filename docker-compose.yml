@@ -10,6 +10,11 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gnu_user -d gnu_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   backend:
     build: ./backend
@@ -17,11 +22,15 @@ services:
       - "8001:8000"
     env_file:
       - ./backend/.env
+    environment:
+      # Windows + Docker: makes --reload notice file changes made on the host
+      WATCHFILES_FORCE_POLLING: "true"
     volumes:
       - ./backend:/app
       - uploads_data:/app/uploads
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:
